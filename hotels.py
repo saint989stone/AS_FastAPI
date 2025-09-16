@@ -1,6 +1,11 @@
 from fastapi import Query, Body, APIRouter
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
+
+class Hotel(BaseModel):
+    title: str
+    name: str
 
 hotels = [
     {"id": 1, "title": "Sochi", "name": "sochi"},
@@ -36,16 +41,19 @@ def delete_hotel(
 
 #в запросах запросах post, put, patch параметры принимаются в теле запроса
 @router.post("")
-def create_hotel(
-        title: str = Body(embed=True),          #embed включает передачу данных в формате json
-):
+def create_hotel(data: Hotel):
     global hotels
     hotels.append({
         "id": hotels[-1]["id"] + 1,
-        "title": title
+        "title": data.title,
+        "name": data.name,
     })
 
-@router.patch("/{hotel_id}")
+@router.patch(
+    "/{hotel_id}",
+    summary="Частичное обновление об отелях",
+    description="Можно обновить один атрибут"
+)
 def patch_hotel(
         hotel_id: int,
         title: str | None = Body(embed=True, default=None),
@@ -66,14 +74,13 @@ def patch_hotel(
 @router.put("/{hotel_id}")
 def put_hotel(
         hotel_id: int,
-        title: str = Body(embed=True),
-        name: str = Body(embed=True),
+        data: Hotel
 ):
     global hotels
     for hotel in hotels:
         if hotel["id"] == hotel_id:
-            hotel["title"] = title
-            hotel["name"] = name
+            hotel["title"] = data.title
+            hotel["name"] = data.name
             return {"status": 200}
         else:
             continue
