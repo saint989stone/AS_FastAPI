@@ -1,2 +1,5 @@
 venv
 .gitignore
+.idea
+.__pyache__
+.env
