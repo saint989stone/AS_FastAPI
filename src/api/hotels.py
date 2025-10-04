@@ -1,45 +1,40 @@
 from fastapi import Query, APIRouter, Body
 from src.api.dependencies import PaginationDep
+from src.database import async_session_maker, engine
+from src.models.hotels import HotelsORM
 from src.schemas.hotels import Hotel, HotelPATCH
+from sqlalchemy import insert, select
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
 
-hotels = [
-    {"id": 1, "title": "Sochi", "name": "sochi"},
-    {"id": 2, "title": "Dubai", "name": "dubai"},
-    {"id": 3, "title": "Santa", "name": "santa"},
-    {"id": 4, "title": "Malg", "name": "malg"},
-    {"id": 5, "title": "Shalga", "name": "shalga"},
-    {"id": 6, "title": "Ney Work", "name": "ney work"},
-    {"id": 7, "title": "Brons", "name": "brons"},
-    {"id": 8, "title": "Kipr", "name": "kipr"},
-    {"id": 9, "title": "Moscow", "name": "moscow"},
-    {"id": 10, "title": "Sant-Peter", "name": "sant-peter"},
-    {"id": 11, "title": "Samara", "name": "samara"},
-    {"id": 12, "title": "Kazan", "name": "kazan"},
-]
 #в запросах get, delete параметры принимаются из строки запроса в query параметрах
 @router.get("/")
 def func():
     return "Hello FastAPI"
 
 @router.get("")
-def get_hotels(
+async def get_hotels(
         pagination: PaginationDep,
-        id: int | None = Query(default=None, description="ID записи"),
-        title: str | None = Query(default=None, description="Назание отеля"),
-
+        id: int | None = Query(default=None, description="ID"),
+        title: str | None = Query(default=None, description="Название"),
+        location: str | None = Query(default=None, description="Расположение"),
 ):
-    hotels_list = []
-    for hotel in hotels:
-        if id and hotel["id"] != id:
-            continue
-        if title and hotel["title"] != title:
-            continue
-        hotels_list.append(hotel)
-        if pagination.page is not None and pagination.per_page is not None:
-            return hotels[(pagination.page - 1) * pagination.per_page:pagination.page * pagination.per_page]
-        return hotels_list
+    async with async_session_maker() as session:
+        query = select(HotelsORM)
+        if id:
+            query = query.filter_by(id=id)
+        if title:
+            query = query.filter(HotelsORM.title.ilike('%' + title + '%'))
+        if location:
+            query = query.filter(HotelsORM.location.ilike('%' + location + '%'))
+        query = (
+            query
+            .limit(pagination.per_page)         #количество записей на одной страницы
+            .offset(pagination.per_page * (pagination.page - 1))         #сдвиг записей на странице, то есть скакой записи начинается страница
+        )
+        result = await session.execute(query)
+        hotels = result.scalars().all()
+        return hotels
 
 @router.delete("/{hotel_id}")
 def delete_hotel(
@@ -51,23 +46,29 @@ def delete_hotel(
 
 #в запросах запросах post, put, patch параметры принимаются в теле запроса
 @router.post("")
-def create_hotel(data: Hotel = Body(openapi_examples={
-    "1": {"summary": "Сочи", "value": {
-        "title": "Sochi",
-        "name": "LAstochka",
-    }},
-    "2": {"summary": "Dubai", "value": {
-        "title": "Dubai",
-        "name": "Dubai_Resot",
-    }}
-})
-):
-    global hotels
-    hotels.append({
-        "id": hotels[-1]["id"] + 1,
-        "title": data.title,
-        "name": data.name,
+async def create_hotel(data: Hotel = Body(
+    openapi_examples={
+        "1": {
+            "summary": "Сочи",
+            "value": {
+                "title": "Lastochka",
+                "location": "г. Сочи, ул. Моря 1",
+            },
+        },
+        "2": {
+            "summary": "Дубай",
+            "value": {
+                "title": "Resot 5 Stars",
+                "location": "г. Дубай, ул. Шейха 2",
+            },
+        },
     })
+):
+    async with async_session_maker() as session:
+        stmt = insert(HotelsORM).values(**data.model_dump())
+        print(engine, stmt.compile(compile_kwargs={"literal_binds": True}))
+        await session.execute(stmt)
+        await session.commit()
     return {"status": "OK"}
 
 @router.patch(
