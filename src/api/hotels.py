@@ -1,9 +1,7 @@
 from fastapi import Query, APIRouter, Body
-from src.api.dependencies import PaginationDep
+from src.api.dependencies import PaginationDep, HotelDep
 from src.database import async_session_maker, engine
-from src.models.hotels import HotelsORM
 from src.schemas.hotels import Hotel, HotelPATCH
-from sqlalchemy import insert, select
 from src.repositories.hotels import HotelsRepo
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
@@ -26,6 +24,11 @@ async def get_hotels(
             limit=pagination.per_page,
             offset=pagination.per_page * (pagination.page - 1)
         )
+
+@router.get("/{hotel_id}")
+async def get_hotel(hotel: HotelDep):
+    async with async_session_maker() as session:
+        return await HotelsRepo(session).get_one_or_none(id=hotel.id)
 
 @router.delete("/{hotel_id}")
 async def delete_hotel(
@@ -66,20 +69,14 @@ async def create_hotel(data: Hotel = Body(
     summary="Частичное обновление об отелях",
     description="Можно обновить один атрибут"
 )
-def patch_hotel(
+async def patch_hotel(
         hotel_id: int,
         data: HotelPATCH
 ):
-    global hotels
-    for hotel in hotels:
-        if hotel["id"] == hotel_id:
-            if data.title and hotel["title"] != data.title:
-                hotel["title"] = data.title
-            if data.name and hotel["name"] != data.name:
-                hotel["name"] = data.name
-            return {"status": "OK"}
-        else:
-            continue
+    async with async_session_maker() as session:
+        await HotelsRepo(session).edit(data=data, exclude_unset=True, id=hotel_id)
+        await session.commit()
+    return {"status": "OK"}
 
 
 @router.put("/{hotel_id}")
@@ -88,14 +85,6 @@ async def put_hotel(
         data: Hotel = Body
 ):
     async with async_session_maker() as session:
-        await HotelsRepo.edit(data=data, id=hotel_id)
+        await HotelsRepo(session).edit(data=data, id=hotel_id)
         await session.commit()
     return {"status": "OK"}
-    # global hotels
-    # for hotel in hotels:
-    #     if hotel["id"] == hotel_id:
-    #         hotel["title"] = data.title
-    #         hotel["name"] = data.name
-    #         return {"status": "OK"}
-    #     else:
-    #         continue

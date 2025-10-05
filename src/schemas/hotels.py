@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 class Hotel(BaseModel):
+    id: int
     title: str
     location: str
 
