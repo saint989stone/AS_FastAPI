@@ -28,11 +28,12 @@ async def get_hotels(
         )
 
 @router.delete("/{hotel_id}")
-def delete_hotel(
+async def delete_hotel(
         hotel_id: int
 ):
-    global hotels
-    hotels = [hotel for hotel in hotels if hotel["id"] != hotel_id]
+    async with async_session_maker() as session:
+        await HotelsRepo(session).delete(id=hotel_id)
+        await session.commit()
     return {"status": "OK"}
 
 #в запросах запросах post, put, patch параметры принимаются в теле запроса
@@ -57,12 +58,8 @@ async def create_hotel(data: Hotel = Body(
 ):
     async with async_session_maker() as session:
         hotel = await HotelsRepo(session).add(data)
-        # stmt = insert(HotelsORM).values(**data.model_dump())
-        # print(engine, stmt.compile(compile_kwargs={"literal_binds": True}))
-        # await session.execute(stmt)
         await session.commit()
-        print(f'id: {hotel}')
-    return {"status": "OK"}
+    return {"status": "OK", "data": hotel}
 
 @router.patch(
     "/{hotel_id}",
@@ -86,15 +83,19 @@ def patch_hotel(
 
 
 @router.put("/{hotel_id}")
-def put_hotel(
+async def put_hotel(
         hotel_id: int,
-        data: Hotel
+        data: Hotel = Body
 ):
-    global hotels
-    for hotel in hotels:
-        if hotel["id"] == hotel_id:
-            hotel["title"] = data.title
-            hotel["name"] = data.name
-            return {"status": "OK"}
-        else:
-            continue
+    async with async_session_maker() as session:
+        await HotelsRepo.edit(data=data, id=hotel_id)
+        await session.commit()
+    return {"status": "OK"}
+    # global hotels
+    # for hotel in hotels:
+    #     if hotel["id"] == hotel_id:
+    #         hotel["title"] = data.title
+    #         hotel["name"] = data.name
+    #         return {"status": "OK"}
+    #     else:
+    #         continue
