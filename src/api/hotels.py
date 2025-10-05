@@ -4,6 +4,7 @@ from src.database import async_session_maker, engine
 from src.models.hotels import HotelsORM
 from src.schemas.hotels import Hotel, HotelPATCH
 from sqlalchemy import insert, select
+from src.repositories.hotels import HotelsRepo
 
 router = APIRouter(prefix="/hotels", tags=["hotels"])
 
@@ -15,26 +16,16 @@ def func():
 @router.get("")
 async def get_hotels(
         pagination: PaginationDep,
-        id: int | None = Query(default=None, description="ID"),
         title: str | None = Query(default=None, description="Название"),
         location: str | None = Query(default=None, description="Расположение"),
 ):
     async with async_session_maker() as session:
-        query = select(HotelsORM)
-        if id:
-            query = query.filter_by(id=id)
-        if title:
-            query = query.filter(HotelsORM.title.ilike('%' + title + '%'))
-        if location:
-            query = query.filter(HotelsORM.location.ilike('%' + location + '%'))
-        query = (
-            query
-            .limit(pagination.per_page)         #количество записей на одной страницы
-            .offset(pagination.per_page * (pagination.page - 1))         #сдвиг записей на странице, то есть скакой записи начинается страница
+        return await HotelsRepo(session).get_all(
+            title=title,
+            location=location,
+            limit=pagination.per_page,
+            offset=pagination.per_page * (pagination.page - 1)
         )
-        result = await session.execute(query)
-        hotels = result.scalars().all()
-        return hotels
 
 @router.delete("/{hotel_id}")
 def delete_hotel(
@@ -65,10 +56,12 @@ async def create_hotel(data: Hotel = Body(
     })
 ):
     async with async_session_maker() as session:
-        stmt = insert(HotelsORM).values(**data.model_dump())
-        print(engine, stmt.compile(compile_kwargs={"literal_binds": True}))
-        await session.execute(stmt)
+        hotel = await HotelsRepo(session).add(data)
+        # stmt = insert(HotelsORM).values(**data.model_dump())
+        # print(engine, stmt.compile(compile_kwargs={"literal_binds": True}))
+        # await session.execute(stmt)
         await session.commit()
+        print(f'id: {hotel}')
     return {"status": "OK"}
 
 @router.patch(
