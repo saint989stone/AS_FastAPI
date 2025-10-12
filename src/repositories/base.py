@@ -4,10 +4,13 @@
 from pydantic import BaseModel
 from sqlalchemy import select, insert, delete, update
 from src.database import engine
+from src.schemas.hotels import Hotel
 
 
 class BaseRepo:
     model = None
+    schema: BaseModel = None
+
     def __init__(self, session):
         self.session = session
 
@@ -15,7 +18,7 @@ class BaseRepo:
         query = select(self.model)
         print(engine, query.compile(compile_kwargs={"literal_binds": True}))
         result = await self.session.execute(query)
-        return result.scalars().all()
+        return [self.schema.model_validate(model, from_attributes=True) for model in result.scalars().all()]
 
     async def get_one_or_none(self, **filter_by):
         query = (
@@ -23,7 +26,10 @@ class BaseRepo:
             .filter_by(**filter_by)
         )
         result = await self.session.execute(query)
-        return result.scalars().one_or_none()
+        model = result.scalars().one_or_none()
+        if model is None:
+            return None
+        return self.schema.model_validate(model, from_attributes=True)
 
     async def add(self, data: BaseModel):
         stmt = (
@@ -33,7 +39,8 @@ class BaseRepo:
         )
         print(engine, stmt.compile(compile_kwargs={"literal_binds": True}))
         result = await self.session.execute(stmt)
-        return result.scalars().one()
+        model = result.scalars().one()
+        return self.schema.model_validate(model, from_attributes=True)
 
     async def delete(self, **filter_by) -> None:
         stmt = (
