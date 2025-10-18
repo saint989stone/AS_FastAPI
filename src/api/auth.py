@@ -1,13 +1,26 @@
-from celery.bin.result import result
-from fastapi import APIRouter, Body
-from passlib.context import CryptContext
+from debugpy.adapter import access_token
+from fastapi import APIRouter, Body, HTTPException, Response, Request
 from src.database import async_session_maker
 from src.repositories.users import UsersRepo
 from src.schemas.users import UserRequestAdd, UserAdd
+from src.services.auth import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Авторизация и аутентификация"])
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+@router.post("/login")
+async def login(
+        data: UserRequestAdd,
+        response: Response
+):
+    async with async_session_maker() as session:
+        user = await UsersRepo(session).get_user_with_hashed_password(email=data.email)
+        if not user:
+            raise HTTPException(status_code=401, detail="Пользователь с таким email не зарегестрирован")
+        if not AuthService().verify_password(data.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Неверный пароль")
+        access_token = AuthService().create_access_token({"user_id": user.id})
+        response.set_cookie(key="access_token", value=access_token)
+        return {"access_token": access_token}
 
 @router.post("/register")
 async def create_user(data: UserRequestAdd = Body(
@@ -28,15 +41,22 @@ async def create_user(data: UserRequestAdd = Body(
         },
     })
 ):
-    hashed_password = pwd_context.hash(data.password)
+    hashed_password = AuthService().hash_password(data.password)
     new_user_data = UserAdd(
         email=data.email,
         hashed_password=hashed_password,
     )
     async with async_session_maker() as session:
-        res = await UsersRepo(session).add(new_user_data)
+        await UsersRepo(session).add(new_user_data)
         await session.commit()
-        if res:
-            return {"status": "OK"}
-        else:
-            return {"status": "ERROR"}
+
+@router.get("/only_auth")
+async def only_auth(
+        request: Request,
+):
+    cookies = request.cookies
+    if cookies:
+        access_token = cookies["access_token"]
+    else:
+        access_token = None
+    print(access_token)
