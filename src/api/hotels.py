@@ -4,7 +4,7 @@ from src.database import async_session_maker, engine
 from src.schemas.hotels import Hotel, HotelPATCH, HotelAdd
 from src.repositories.hotels import HotelsRepo
 
-router = APIRouter(prefix="/hotels", tags=["hotels"])
+router = APIRouter(prefix="/hotels", tags=["Отели"])
 
 #в запросах get, delete параметры принимаются из строки запроса в query параметрах
 @router.get("/")

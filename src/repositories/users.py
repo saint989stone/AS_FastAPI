@@ -15,5 +15,3 @@ class UsersRepo(BaseRepo):
         result = await self.session.execute(query)
         model = result.scalars().one()
         return UserWithHashedPassword.model_validate(model)
-
-#Рефакторинг разделение аутентификациии по разным классам
