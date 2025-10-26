@@ -1,6 +1,11 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import date
 
+class BookingAddRequest(BaseModel):
+    room_id: int
+    date_from: date
+    date_to: date
+
 class BookingAdd(BaseModel):
     user_id: int
     room_id: int
@@ -13,6 +18,3 @@ class Booking(BookingAdd):
 
     model_config = ConfigDict(from_attributes=True)
 
-class BookingAddRequest(BaseModel):
-    date_from: date
-    date_to: date
