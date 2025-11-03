@@ -49,6 +49,15 @@ class BaseRepo:
         model = result.scalars().one()
         return self.schema.model_validate(model, from_attributes=True)
 
+    async def add_bulk(self, data: list[BaseModel]):
+        stmt = (
+            insert(self.model)
+            .values([item.model_dump() for item in data])
+            .returning(self.model)
+        )
+        print(engine, stmt.compile(compile_kwargs={"literal_binds": True}))
+        await self.session.execute(stmt)
+
     async def delete(self, **filter_by) -> None:
         stmt = (
             delete(self.model)

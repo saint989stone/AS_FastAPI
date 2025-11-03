@@ -1,17 +1,15 @@
 from fastapi import Query, APIRouter, Body
 from src.api.dependencies import PaginationDep, HotelDep, DBDep
-from src.schemas.facilities import Facilities, FacilitiesAdd
+from src.schemas.facilities import Facility, FacilityAdd
 
 router = APIRouter(prefix="/facilities", tags=["Удобства"])
 
 @router.get("")
-async def get_facilities(
-        db: DBDep
-):
+async def get_facilities(db: DBDep):
     return await db.facilities.get_all()
 
 @router.post("")
-async def create_facilities(db: DBDep, data: FacilitiesAdd = Body(
+async def create_facilities(db: DBDep, data: FacilityAdd = Body(
     openapi_examples={
         "1": {
             "summary": "Internet",
@@ -27,6 +25,6 @@ async def create_facilities(db: DBDep, data: FacilitiesAdd = Body(
         },
     })
 ):
-    facilities = await db.facilities.add(data)
+    facility = await db.facilities.add(data)
     await db.commit()
-    return {"status": "OK", "data": facilities}
+    return {"status": "OK", "data": facility}

@@ -2,7 +2,7 @@ from src.repositories.hotels import HotelsRepo
 from src.repositories.rooms import RoomsRepo
 from src.repositories.users import UsersRepo
 from src.repositories.bookings import BookingsRepo
-from src.repositories.facilities import FacilitiesRepo
+from src.repositories.facilities import FacilitiesRepo, RoomsFacilitiesRepo
 
 
 class DBManager:
@@ -17,6 +17,7 @@ class DBManager:
         self.users = UsersRepo(self.session)
         self.bookings = BookingsRepo(self.session)
         self.facilities = FacilitiesRepo(self.session)
+        self.rooms_facilities = RoomsFacilitiesRepo(self.session)
 
         return self
 

@@ -1,8 +1,8 @@
-"""FacilitiesORM
+"""add_facilities
 
-Revision ID: 6778eb0e6572
+Revision ID: 2e4e36182513
 Revises: 894b0afbf535
-Create Date: 2025-11-03 10:26:46.027857
+Create Date: 2025-11-03 16:32:11.746602
 
 """
 
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "6778eb0e6572"
+revision: str = "2e4e36182513"
 down_revision: Union[str, None] = "894b0afbf535"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,9 +31,9 @@ def upgrade() -> None:
         "rooms_facilities",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("room_id", sa.Integer(), nullable=False),
-        sa.Column("facilities_id", sa.Integer(), nullable=False),
+        sa.Column("facility_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["facilities_id"],
+            ["facility_id"],
             ["facilities.id"],
         ),
         sa.ForeignKeyConstraint(
