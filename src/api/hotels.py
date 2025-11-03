@@ -38,8 +38,10 @@ async def get_hotels_bookings(
     return await db.hotels.get_filtred_by_time(
         date_from=date_from,
         date_to=date_to,
-        # limit=pagination.per_page,
-        # offset=pagination.per_page * (pagination.page - 1)
+        title=title,
+        location=location,
+        limit=pagination.per_page,
+        offset=pagination.per_page * (pagination.page - 1)
     )
 
 @router.get("/{hotel_id}")
