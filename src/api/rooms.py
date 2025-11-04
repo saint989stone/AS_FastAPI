@@ -51,22 +51,12 @@ async def patch_room(
         room_id: int,
         data: RoomPatchRequest
 ):
-    _data = RoomPatch(hotel_id=hotel_id, **data.model_dump(exclude_unset=True))
-    db_facilities_ids = await db.rooms_facilities.get_all(room_id=room_id)
-    set_db_facilities_ids = {room_facility.facility_id for room_facility in db_facilities_ids}
-    set_user_facilities_ids = set(data.facilities_ids)
-    print(set_db_facilities_ids)
-    print(set_user_facilities_ids)
-    set_add_facilities_ids = set_user_facilities_ids - set_db_facilities_ids
-    set_del_facilities_ids = set_db_facilities_ids - set_user_facilities_ids
-    room_facilities_data = [RoomFacilityAdd(room_id=room_id, facility_id=facility_id) for facility_id in set_add_facilities_ids]
-    if set_add_facilities_ids:
-        await db.rooms_facilities.add_bulk(data=room_facilities_data)
-    # if set_del_facilities_ids:
-    #     await db.rooms_facilities.delete_bulk(room_facilities_data)
+    _data_dict = data.model_dump(exclude_unset=True)
+    _data = RoomPatch(hotel_id=hotel_id, **_data_dict)
+    await db.rooms.edit(data=_data, exclude_unset=True, id=room_id, hotel_id=hotel_id)
+    if "facilities_ids" in _data_dict:
+        await db.rooms_facilities.set_room_facilities(room_id=room_id, facilities_ids=_data_dict["facilities_ids"])
     await db.commit()
-    # await db.rooms.edit(data=data, exclude_unset=True, id=room_id, hotel_id=hotel_id)
-    # await db.commit()
     return {"status": "OK"}
 
 @router.put("/{hotel_id}/rooms/{room_id}")
@@ -78,5 +68,6 @@ async def put_room(
 ):
     _data = RoomAdd(hotel_id=hotel_id, **data.model_dump())
     await db.rooms.edit(data=_data, id=room_id)
+    await db.rooms_facilities.set_room_facilities(room_id=room_id, facilities=data.facilities_ids)
     await db.commit()
     return {"status": "OK"}
