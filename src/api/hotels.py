@@ -1,4 +1,6 @@
 from fastapi import Query, APIRouter, Body
+from fastapi_cache.decorator import cache
+
 from src.api.dependencies import PaginationDep, HotelDep, DBDep
 from src.database import async_session_maker, engine
 from src.schemas.hotels import Hotel, HotelPATCH, HotelAdd
@@ -13,6 +15,7 @@ def func():
     return "Hello FastAPI"
 
 @router.get("")
+@cache(expire=10)
 async def get_hotels(
         db: DBDep,
         pagination: PaginationDep,
