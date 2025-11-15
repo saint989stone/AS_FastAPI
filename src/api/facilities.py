@@ -5,6 +5,7 @@ import json
 from src.api.dependencies import PaginationDep, HotelDep, DBDep
 from src.init import redis_manager
 from src.schemas.facilities import Facility, FacilityAdd
+from src.tasks.tasks import test_task
 
 router = APIRouter(prefix="/facilities", tags=["Удобства"])
 
@@ -33,4 +34,7 @@ async def create_facilities(db: DBDep, data: FacilityAdd = Body(
 ):
     facility = await db.facilities.add(data)
     await db.commit()
+
+    test_task.delay()
+
     return {"status": "OK", "data": facility}
