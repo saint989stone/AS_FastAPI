@@ -1,8 +1,11 @@
+from jinja2.nodes import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
+from typing import Literal
 
 
 class Settings(BaseSettings):
+    MODE: Literal["TEST", "LOCAL", "DEV", "PROD"]
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
