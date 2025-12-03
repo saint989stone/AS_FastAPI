@@ -15,7 +15,7 @@ def func():
     return "Hello FastAPI"
 
 @router.get("")
-#@cache(expire=10)
+@cache(expire=10)
 async def get_hotels(
         db: DBDep,
         pagination: PaginationDep,

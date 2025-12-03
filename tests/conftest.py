@@ -1,7 +1,17 @@
 import json
+from unittest import mock
+
+def empty_cache(*args, **kwargs):
+    def wrapper(func):
+        return func
+    return wrapper
+
+mock.patch("fastapi_cache.decorator.cache", empty_cache).start()
+#mock.patch("fastapi_cache.decorators.cache", lambda *args, **kwargs: lambda f: f).start()
 
 import pytest
 from httpx import AsyncClient
+
 
 from src.api.dependencies import get_db
 from src.config import settings
